@@ -63,6 +63,7 @@ Resources:
         ZipFile: |
           import json
           import os
+          import re
           import uuid
           from datetime import datetime, timezone
           import boto3
@@ -71,9 +72,50 @@ Resources:
 
           REQUIRED_FIELDS = ("description", "stepsToReproduce", "environment")
 
+
+          def _extract_json(raw):
+              if isinstance(raw, dict):
+                  return raw
+              text = str(raw or "")
+              text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip(), flags=re.MULTILINE)
+              match = re.search(r"\{.*\}", text, flags=re.DOTALL)
+              if match:
+                  return json.loads(match.group(0))
+              return {}
+
+
           def lambda_handler(event, _):
               print("EVENT:", json.dumps(event, indent=2, default=str))
 
+              # ---------- Branch 1: Bedrock FLOW Lambda-node event ----------
+              if "node" in event and isinstance(event.get("node", {}).get("inputs"), list):
+                  flow_inputs = event["node"]["inputs"]
+                  raw = flow_inputs[0].get("value") if flow_inputs else "{}"
+                  try:
+                      body = _extract_json(raw)
+                  except Exception:
+                      body = {"description": str(raw), "stepsToReproduce": "", "environment": ""}
+
+                  description = (body.get("description") or "").strip()
+                  steps = (body.get("stepsToReproduce") or "").strip()
+                  environment = (body.get("environment") or "").strip()
+
+                  if not description:
+                      return json.dumps({"error": "missing", "field": "description"})
+
+                  ticket_id = str(uuid.uuid4())
+                  table.put_item(Item={
+                      "ticketId": ticket_id,
+                      "description": description,
+                      "stepsToReproduce": steps,
+                      "environment": environment,
+                      "status": "OPEN",
+                      "createdAt": datetime.now(timezone.utc).isoformat(),
+                  })
+
+                  return json.dumps({"ticketId": ticket_id, "status": "OPEN"})
+
+              # ---------- Branch 2: Bedrock AGENT action-group event (C1 test) ----------
               if event.get("messageVersion") != "1.0" or event.get("function") != "create_bug_report":
                   return _resp(event, {"error": "unsupported"})
 
@@ -92,16 +134,14 @@ Resources:
                   return _resp(event, {"error": "missing", "field": "description"})
 
               ticket_id = str(uuid.uuid4())
-              item = {
+              table.put_item(Item={
                   "ticketId": ticket_id,
                   "description": description,
                   "stepsToReproduce": steps,
                   "environment": environment,
                   "status": "OPEN",
                   "createdAt": datetime.now(timezone.utc).isoformat(),
-              }
-
-              table.put_item(Item=item)
+              })
 
               return _resp(event, {"ticketId": ticket_id, "status": "OPEN"})
 

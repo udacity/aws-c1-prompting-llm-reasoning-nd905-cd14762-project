@@ -1,0 +1,32 @@
+{
+  "flowInputNode": {
+    "nodeName": "FlowInputNode"
+  },
+  "tests": [
+    {
+      "id": "t1_bug_report_complete",
+      "prompt": "The checkout page crashes every time I click the Pay button. I'm using Chrome 120 on Windows 11.",
+      "expected": "Acknowledges the bug report, confirms a support ticket was created, includes a ticket ID, and mentions the status is OPEN."
+    },
+    {
+      "id": "t2_bug_report_minimal",
+      "prompt": "My app keeps crashing when I try to upload a photo.",
+      "expected": "Acknowledges the bug report and confirms a support ticket was created with a ticket ID and status OPEN. It may not have steps-to-reproduce or environment details since the customer did not provide them."
+    },
+    {
+      "id": "t3_platform_question_covered",
+      "prompt": "How do I track my order?",
+      "expected": "Answers from the FAQ: once the order ships the customer receives a tracking link by email, and can also find tracking under My Orders if they have an account."
+    },
+    {
+      "id": "t4_platform_question_uncovered",
+      "prompt": "Do you have a physical store I can visit?",
+      "expected": "Politely says it cannot answer that question and directs the customer to contact human support by phone at 1-800-555-0199."
+    },
+    {
+      "id": "t5_other_request",
+      "prompt": "Can you tell me a joke?",
+      "expected": "Politely explains the request is outside its scope and directs the customer to contact human support by phone at 1-800-555-0199."
+    }
+  ]
+}
